@@ -66,6 +66,12 @@ const WeatherApp = () => {
     // eslint-disable-next-line
   }, []); // The empty array makes sure this only happens once on initial load
 
+  // Re-fetch weather data when the unit changes
+  useEffect(() => {
+    fetchWeather();
+    // eslint-disable-next-line
+  }, [unit]); // This hook listens to unit change
+
   return (
     <div className="min-h-screen bg-blue-300 flex flex-col items-center justify-center p-4">
       <h1 className="text-3xl md:text-4xl font-bold mb-6 text-gray-700 text-center">
