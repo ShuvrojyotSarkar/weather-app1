@@ -39,7 +39,29 @@ const WeatherApp = () => {
       if (!forecastResponse.ok) throw new Error("City not found");
       const forecastData = await forecastResponse.json();
 
-      setForecast(forecastData.list.slice(0, 4)); // Use the first 4 forecasts for simplicity
+      // Filter forecast to get one entry per day (closest to 12:00 PM)
+      const filteredForecast = forecastData.list.filter((entry) =>
+        entry.dt_txt.includes("12:00:00")
+      );
+
+      // Get the next four distinct days
+      const nextFourDays = [];
+      const seenDates = new Set();
+
+      for (const entry of filteredForecast) {
+        const date = new Date(entry.dt_txt).toLocaleDateString("en-US", {
+          weekday: "long",
+        });
+
+        if (!seenDates.has(date)) {
+          seenDates.add(date);
+          nextFourDays.push(entry);
+        }
+
+        if (nextFourDays.length === 4) break;
+      }
+
+      setForecast(nextFourDays);
     } catch (error) {
       setError(error.message);
       setWeather(null);
@@ -54,19 +76,16 @@ const WeatherApp = () => {
   };
 
   const handleKeyDown = (e) => {
-    // Trigger search when Enter key is pressed
     if (e.key === "Enter") {
       fetchWeather();
     }
   };
 
-  // Perform initial search for Falakata when the component mounts
   useEffect(() => {
     fetchWeather();
     // eslint-disable-next-line
-  }, []); // The empty array makes sure this only happens once on initial load
+  }, []); // The empty array ensures this only happens once on initial load
 
-  // Re-fetch weather data when the unit changes
   useEffect(() => {
     fetchWeather();
     // eslint-disable-next-line
@@ -84,8 +103,8 @@ const WeatherApp = () => {
           placeholder="Enter city"
           className="border border-gray-300 rounded-md px-4 py-2 w-full sm:w-auto"
           value={city}
-          onChange={(e) => setCity(e.target.value)} // Update city state as user types
-          onKeyDown={handleKeyDown} // Listen for Enter key press
+          onChange={(e) => setCity(e.target.value)}
+          onKeyDown={handleKeyDown}
         />
         <button
           onClick={handleSearch}
@@ -109,7 +128,9 @@ const WeatherApp = () => {
             />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-center sm:text-left">{weather.name}</h2>
+            <h2 className="text-xl font-bold text-center sm:text-left">
+              {weather.name}
+            </h2>
             <p className="text-gray-600 text-center sm:text-left">
               {weather.main?.temp || "N/A"}° {unit === "metric" ? "C" : "F"}
             </p>
@@ -126,7 +147,23 @@ const WeatherApp = () => {
 
       {forecast.length > 0 && (
         <div className="bg-white shadow-lg rounded-md p-6 w-full max-w-4xl">
-          <h2 className="text-xl font-bold mb-4 text-center">4-Day Forecast</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">4-Day Forecast</h2>
+            <div className="flex items-center">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={unit === "imperial"}
+                  onChange={handleToggleUnit}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-400 rounded-full peer dark:bg-gray-700 peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                  {unit === "metric" ? "Celsius" : "Fahrenheit"}
+                </span>
+              </label>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {forecast.map((day, index) => (
               <div
@@ -150,13 +187,6 @@ const WeatherApp = () => {
           </div>
         </div>
       )}
-
-      <button
-        onClick={handleToggleUnit}
-        className="mt-4 bg-gray-200 px-4 py-2 rounded-md hover:bg-gray-300 w-full sm:w-auto"
-      >
-        Toggle to {unit === "metric" ? "Fahrenheit" : "Celsius"}
-      </button>
     </div>
   );
 };
